@@ -20,6 +20,13 @@ def setup_no_proxy():
     os.environ["NO_PROXY"] = "localhost, 127.0.0.1"
     os.environ["no_proxy"] = "localhost, 127.0.0.1"
 
+def setup_local_proxy():
+    '''
+    Set up local proxy server for the connections
+    '''
+    os.environ["https_proxy"] = "http://127.0.0.1:3128"
+    os.environ["http_proxy"] = "http://127.0.0.1:3128"
+
 def system_prompt():
     '''
     Return a default system prompt.

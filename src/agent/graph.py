@@ -20,7 +20,9 @@ from agent.utils.config import init_models, setup_no_proxy, system_prompt
 from agent.utils.rag import build_prompt
 
 # Set NO_PROXY to avoid proxy for localhost connections (important for local MCP server access)
-# setup_no_proxy()
+setup_no_proxy()
+os.environ["https_proxy"] = "http://rb-proxy-de.bosch.com:8080"
+os.environ["http_proxy"] = "http://rb-proxy-de.bosch.com:8080"
 
 # load env values (LLM api key etc.)
 
