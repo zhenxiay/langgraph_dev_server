@@ -44,7 +44,7 @@ def search(query):
         query=query,
         filter_dict={'course': 'data-engineering-zoomcamp'},
         boost_dict=boost,
-        num_results=5
+        num_results=3
     )
 
     return results

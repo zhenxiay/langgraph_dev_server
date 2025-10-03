@@ -16,13 +16,15 @@ from langgraph.graph import StateGraph
 from langgraph.runtime import Runtime
 from langchain_core.messages import AnyMessage
 
-from agent.utils.config import init_models, setup_no_proxy, system_prompt
+from agent.utils.config import (
+    init_models, setup_no_proxy, system_prompt, setup_langfuse
+)
 from agent.utils.rag import build_prompt
 
 # Set NO_PROXY to avoid proxy for localhost connections (important for local MCP server access)
-setup_no_proxy()
-os.environ["https_proxy"] = "http://rb-proxy-de.bosch.com:8080"
-os.environ["http_proxy"] = "http://rb-proxy-de.bosch.com:8080"
+#setup_no_proxy()
+#os.environ["https_proxy"] = ""
+#os.environ["http_proxy"] = ""
 
 # load env values (LLM api key etc.)
 
@@ -54,14 +56,14 @@ def rag_search(state:State):
 
     return {"input_messages": input_messages}
 
-
 def call_model(state: State, runtime: Runtime[ContextSchema]) -> Dict[str, Any]:
     """Process input and returns output.
 
     Can use runtime context to alter behavior.
     """
     MODELS = init_models()
-    model = MODELS[runtime.context.model_provider]
+    #model = MODELS[runtime.context.model_provider]
+    model = MODELS["openai"]
     #input_messages = build_prompt(state["input_messages"][-1])
     #input_messages = build_prompt("How to run Docker?")
     input_messages = state["input_messages"]
@@ -70,7 +72,7 @@ def call_model(state: State, runtime: Runtime[ContextSchema]) -> Dict[str, Any]:
     return {
         "test_output": "test output from call_model. ",
         "input_messages": state["input_messages"],
-        "system_prompt": {runtime.context.system_message},
+        "system_prompt": system_prompt(),
         "messages": [response],
     }
 
@@ -83,3 +85,10 @@ graph = (
     .add_edge("rag_search","call_model")
     .compile(name="New Graph")
 )
+
+if __name__ == "__main__":
+    # Example of running the graph directly
+    langfuse_handler = setup_langfuse()
+
+    graph.invoke({"input_messages": ["How to run Mongo DB with Docker?"]}, 
+                 config={"callbacks": [langfuse_handler]})
