@@ -3,6 +3,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# mfflow related files
+mlflow.*
+meta.yaml
+traces.json
+trace_info.yaml
+
 # C extensions
 *.so
 
