@@ -32,6 +32,17 @@ def setup_langfuse():
 
     return langfuse_handler
 
+def setup_mlflow_tracing():
+    '''
+    Set up MLflow tracing for agent monitoring.
+    '''
+    import mlflow
+
+    mlflow.set_tracking_uri("http://localhost:5000")
+
+    mlflow.set_experiment("Test_Experiment_Agent_Workflow")
+    mlflow.openai.autolog()
+
 def setup_no_proxy():
     '''
     Set NO_PROXY to avoid proxy for localhost connections (important for local MCP server access)

@@ -15,9 +15,15 @@ from typing_extensions import TypedDict
 from langgraph.graph import StateGraph
 from langgraph.runtime import Runtime
 from langchain_core.messages import AnyMessage
+import mlflow
+from mlflow.entities import SpanType
 
 from agent.utils.config import (
-    init_models, setup_no_proxy, system_prompt, setup_langfuse
+    init_models, 
+    setup_no_proxy, 
+    system_prompt, 
+    setup_langfuse, 
+    setup_mlflow_tracing
 )
 from agent.utils.rag import build_prompt
 
@@ -48,6 +54,7 @@ class State(TypedDict):
     system_prompt: str = system_prompt()
     messages: list[AnyMessage]
 
+@mlflow.trace(span_type=SpanType.TOOL)
 def rag_search(state:State):
     '''
     Node to search in the rag base to enhance the context for the graph.
@@ -86,9 +93,26 @@ graph = (
     .compile(name="New Graph")
 )
 
+@mlflow.trace(span_type=SpanType.AGENT)
+def run_graph(query: str, langfuse_handler=None):
+    '''
+    Run the graph with the given query.
+    '''
+    result = graph.invoke(
+       {"input_messages": [query]},
+       #config={"callbacks": [langfuse_handler]}
+   )
+
+    for m in result["messages"]:
+        m.pretty_print()
+
 if __name__ == "__main__":
     # Example of running the graph directly
-    langfuse_handler = setup_langfuse()
 
-    graph.invoke({"input_messages": ["How to run Mongo DB with Docker?"]}, 
-                 config={"callbacks": [langfuse_handler]})
+    # Optionally set up tracing (langfuse or mlflow)
+    # langfuse_handler = setup_langfuse()
+    setup_mlflow_tracing()
+    
+    query = input("Enter your question: ")
+    
+    run_graph(query)
