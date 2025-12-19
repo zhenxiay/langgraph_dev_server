@@ -1,10 +1,9 @@
-import requests
 import minsearch
+import requests
+
 
 def get_docs():
-    '''
-    Fetch documents from the provided URL and return as a list of dictionaries.
-    '''
+    """Fetch documents from the provided URL and return as a list of dictionaries."""
     docs_url = 'https://github.com/alexeygrigorev/llm-rag-workshop/raw/main/notebooks/documents.json'
     docs_response = requests.get(docs_url)
     documents_raw = docs_response.json()
@@ -19,10 +18,7 @@ def get_docs():
     return documents
 
 def build_index(documents):
-    '''
-    Build a Minsearch index from the provided documents.
-    '''
-
+    """Build a Minsearch index from the provided documents."""
     index = minsearch.Index(
         text_fields=["question", "text", "section"],
         keyword_fields=["course"]
@@ -33,9 +29,7 @@ def build_index(documents):
     return index
 
 def search(query):
-    '''
-    search function to get relevant documents from the index.
-    '''
+    """Search function to get relevant documents from the index."""
     boost = {'question': 3.0, 'section': 0.5}
 
     index = build_index(get_docs())
@@ -50,11 +44,9 @@ def search(query):
     return results
 
 def build_prompt(query):
-    '''
-    Build prompt for RAG based on the search results.
+    """Build prompt for RAG based on the search results.
     Uses the search function to get relevant documents and constructs a prompt.
-    '''
-
+    """
     prompt_template = """
 
 QUESTION: {question}

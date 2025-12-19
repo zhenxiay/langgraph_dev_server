@@ -5,25 +5,21 @@ Returns a predefined response. Replace logic and configuration as needed.
 
 from __future__ import annotations
 
-from dotenv import load_dotenv
-import os
-
 from dataclasses import dataclass
 from typing import Any, Dict
-from typing_extensions import TypedDict
 
+import mlflow
+from dotenv import load_dotenv
+from langchain_core.messages import AnyMessage
 from langgraph.graph import StateGraph
 from langgraph.runtime import Runtime
-from langchain_core.messages import AnyMessage
-import mlflow
 from mlflow.entities import SpanType
+from typing_extensions import TypedDict
 
 from agent.utils.config import (
-    init_models, 
-    setup_no_proxy, 
-    system_prompt, 
-    setup_langfuse, 
-    setup_mlflow_tracing
+    init_models,
+    setup_mlflow_tracing,
+    system_prompt,
 )
 from agent.utils.rag import build_prompt
 
@@ -56,9 +52,7 @@ class State(TypedDict):
 
 @mlflow.trace(span_type=SpanType.TOOL)
 def rag_search(state:State):
-    '''
-    Node to search in the rag base to enhance the context for the graph.
-    '''
+    """Node to search in the rag base to enhance the context for the graph."""
     input_messages = build_prompt(state["input_messages"][-1])
 
     return {"input_messages": input_messages}
@@ -95,9 +89,7 @@ graph = (
 
 @mlflow.trace(span_type=SpanType.AGENT)
 def run_graph(query: str, langfuse_handler=None):
-    '''
-    Run the graph with the given query.
-    '''
+    """Run the graph with the given query."""
     result = graph.invoke(
        {"input_messages": [query]},
        #config={"callbacks": [langfuse_handler]}
