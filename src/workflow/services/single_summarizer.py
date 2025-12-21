@@ -89,6 +89,28 @@ class NotesSummarizer:
         except Exception as e:
             logger.error(f"Error translating text: {str(e)}")
             return f"Error: {str(e)}"
+    
+    def summarize_text_batch(
+        self, 
+        df: pd.DataFrame,
+        notes_column: str,
+        ):
+
+        text_list = [text for text in df[notes_column].tolist()]
+
+        batch_inputs = []
+        batch_outputs = []
+        
+        for text in text_list:
+            batch_inputs.append({"text": text})
+
+        for output in self.summarization_chain.batch(batch_inputs):
+            batch_outputs.append(output)
+        
+        df['Summary'] = batch_outputs
+        df['Tag'] = 'Summarized'
+
+        return df
 
     async def process_batch(
         self, 
