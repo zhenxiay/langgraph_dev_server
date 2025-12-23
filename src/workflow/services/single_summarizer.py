@@ -90,27 +90,71 @@ class NotesSummarizer:
             logger.error(f"Error translating text: {str(e)}")
             return f"Error: {str(e)}"
     
-    def summarize_text_batch(
-        self, 
-        df: pd.DataFrame,
-        notes_column: str,
-        ):
+    async def async_summarize_text(length: int=500):
 
-        text_list = [text for text in df[notes_column].tolist()]
+        df['review_length'] = df['review'].apply(lambda x: len(x))
+
+        df_summary = df[df['review_length'] > length]
+
+        text_list = [text for text in df_summary['review'].tolist()]
 
         batch_inputs = []
         batch_outputs = []
-        
+
+        for text in text_list:
+            batch_inputs.append({"text": text})
+    
+        batch_outputs = await text_summarizer.summarization_chain.abatch(batch_inputs)
+
+        df_summary['Summary'] = batch_outputs
+        df_summary['Tag'] = 'Summarized'
+
+        return df_summary
+    
+    async def async_tanslate_text(length: int=500):
+
+        df['review_length'] = df['review'].apply(lambda x: len(x))
+
+        df_translate = df[df['review_length'] <= length]
+
+        text_list = [text for text in df_translate['review'].tolist()]
+
+        batch_inputs = []
+        batch_outputs = []
+
         for text in text_list:
             batch_inputs.append({"text": text})
 
-        for output in self.summarization_chain.batch(batch_inputs):
-            batch_outputs.append(output)
-        
-        df['Summary'] = batch_outputs
-        df['Tag'] = 'Summarized'
+        #for output in text_summarizer.translation_chain.batch(batch_inputs):
+        #    batch_outputs.append(output)
 
-        return df
+        batch_outputs = await text_summarizer.translation_chain.abatch(batch_inputs)
+
+        df_translate['Summary'] = batch_outputs
+        df_translate['Tag'] = 'Translated'
+    
+        return df_translate
+
+
+    async def async_processing(
+        length: int=500
+        ) -> pd.DataFrame:
+        """Process a batch of rows asynchronously.
+        
+        Args:
+            length: Maximum length of text to summarize, text with less will only be translated.
+
+        Returns:
+            Pandas Dataframe with summary and tag
+        """
+        
+        df_summary = await summarize_text()
+        df_translate = await tanslate_text()
+
+        return pd.concat(
+            [df_summary, df_translate], 
+            ignore_index=True
+            )
 
     async def process_batch(
         self, 
