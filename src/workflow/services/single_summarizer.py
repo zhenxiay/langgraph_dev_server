@@ -7,8 +7,8 @@ import numpy as np
 import pandas as pd
 from langchain_core.output_parsers import StrOutputParser
 from tqdm.auto import tqdm
-from utils.llm import get_azure_openai_llm
-from utils.prompt_template import get_summarization_prompt, get_translation_prompt
+from workflow.utils.llm import get_azure_openai_llm
+from workflow.utils.prompt_template import get_summarization_prompt, get_translation_prompt
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -90,34 +90,42 @@ class NotesSummarizer:
             logger.error(f"Error translating text: {str(e)}")
             return f"Error: {str(e)}"
     
-    async def async_summarize_text(length: int=500):
+    async def async_summarize_text(
+            self,
+            df: pd.DataFrame,
+            text_column: str='review',
+            length: int=500
+            ) -> pd.DataFrame:
 
-        df['review_length'] = df['review'].apply(lambda x: len(x))
+        df['review_length'] = df[text_column].apply(lambda x: len(x))
 
         df_summary = df[df['review_length'] > length]
 
-        text_list = [text for text in df_summary['review'].tolist()]
-
+        text_list = [text for text in df_summary[text_column].tolist()]
         batch_inputs = []
         batch_outputs = []
 
         for text in text_list:
             batch_inputs.append({"text": text})
     
-        batch_outputs = await text_summarizer.summarization_chain.abatch(batch_inputs)
+        batch_outputs = await self.summarization_chain.abatch(batch_inputs)
 
         df_summary=df_summary.assign(Summary=batch_outputs).assign(Tag='Summarized')
 
         return df_summary
     
-    async def async_tanslate_text(length: int=500):
+    async def async_tanslate_text(
+            self,
+            df: pd.DataFrame,
+            text_column: str='review',
+            length: int=500
+            ) -> pd.DataFrame:
 
-        df['review_length'] = df['review'].apply(lambda x: len(x))
+        df['review_length'] = df[text_column].apply(lambda x: len(x))
 
         df_translate = df[df['review_length'] <= length]
 
-        text_list = [text for text in df_translate['review'].tolist()]
-
+        text_list = [text for text in df_translate[text_column].tolist()]
         batch_inputs = []
         batch_outputs = []
 
@@ -127,7 +135,7 @@ class NotesSummarizer:
         #for output in text_summarizer.translation_chain.batch(batch_inputs):
         #    batch_outputs.append(output)
 
-        batch_outputs = await text_summarizer.translation_chain.abatch(batch_inputs)
+        batch_outputs = await self.translation_chain.abatch(batch_inputs)
 
         df_summary=df_translate.assign(Summary=batch_outputs).assign(Tag='Translated')
     
@@ -135,6 +143,9 @@ class NotesSummarizer:
 
 
     async def async_processing(
+        self,
+        df: pd.DataFrame,
+        text_column: str='review',
         length: int=500
         ) -> pd.DataFrame:
         """Process a batch of rows asynchronously.
@@ -146,8 +157,8 @@ class NotesSummarizer:
             Pandas Dataframe with summary and tag
         """
         
-        df_summary = await summarize_text()
-        df_translate = await tanslate_text()
+        df_summary = await self.async_summarize_text(df, text_column, length)
+        df_translate = await self.async_tanslate_text(df, text_column, length)
 
         return pd.concat(
             [df_summary, df_translate], 
