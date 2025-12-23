@@ -106,8 +106,7 @@ class NotesSummarizer:
     
         batch_outputs = await text_summarizer.summarization_chain.abatch(batch_inputs)
 
-        df_summary['Summary'] = batch_outputs
-        df_summary['Tag'] = 'Summarized'
+        df_summary=df_summary.assign(Summary=batch_outputs).assign(Tag='Summarized')
 
         return df_summary
     
@@ -130,8 +129,7 @@ class NotesSummarizer:
 
         batch_outputs = await text_summarizer.translation_chain.abatch(batch_inputs)
 
-        df_translate['Summary'] = batch_outputs
-        df_translate['Tag'] = 'Translated'
+        df_summary=df_translate.assign(Summary=batch_outputs).assign(Tag='Translated')
     
         return df_translate
 
