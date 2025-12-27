@@ -3,3 +3,5 @@ langgraph
 langchain-openai 
 minsearch 
 mlflow>=3.0
+pandas
+scikit-learn

@@ -1,6 +1,23 @@
 """This module define large language models (LLMs) which will be used by the workflow automation."""
-from langchain_openai import AzureChatOpenAI
+from langchain_openai import AzureChatOpenAI, ChatOpenAI
 
+def get_openai_llm(
+        model: str = "gpt-4",
+        temperature: float = 0,
+        max_retries: int = 2,
+    ):
+        """Initialize large language models (LLMs) which will be used by the workflow automation.
+        
+        Args:
+            model: OpenAI model name
+            temperature: LLM temperature (0 = deterministic)
+        """
+        # Use regular ChatOpenAI which supports ainvoke
+        return ChatOpenAI(
+            model_name=model,
+            temperature=temperature,
+            max_retries=max_retries
+        )
 
 def get_azure_openai_llm(
         model: str = "gpt-4.1",

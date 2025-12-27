@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from langchain_core.output_parsers import StrOutputParser
 from tqdm.auto import tqdm
-from workflow.utils.llm import get_azure_openai_llm
+from workflow.utils.llm import get_azure_openai_llm, get_openai_llm
 from workflow.utils.prompt_template import get_summarization_prompt, get_translation_prompt
 
 # Configure logging
@@ -32,7 +32,8 @@ class NotesSummarizer:
             model: Model name (e.g., "gpt-4o-mini", "gpt-4", "gpt-3.5-turbo")
             temperature: LLM temperature (0 = deterministic)
         """
-        self.llm = get_azure_openai_llm(
+        #self.llm = get_azure_openai_llm(
+        self.llm = get_openai_llm(
             model=model,
             temperature=temperature,
             max_retries=2
@@ -137,7 +138,7 @@ class NotesSummarizer:
 
         batch_outputs = await self.translation_chain.abatch(batch_inputs)
 
-        df_summary=df_translate.assign(Summary=batch_outputs).assign(Tag='Translated')
+        df_translate=df_translate.assign(Summary=batch_outputs).assign(Tag='Translated')
     
         return df_translate
 

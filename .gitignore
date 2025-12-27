@@ -8,6 +8,7 @@ mlflow.*
 meta.yaml
 traces.json
 trace_info.yaml
+*.csv
 
 # C extensions
 *.so
