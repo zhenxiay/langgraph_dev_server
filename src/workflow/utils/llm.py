@@ -2,7 +2,7 @@
 from langchain_openai import AzureChatOpenAI, ChatOpenAI
 
 def get_openai_llm(
-        model: str = "gpt-4",
+        model: str = "gpt-4.1",
         temperature: float = 0,
         max_retries: int = 2,
     ):
@@ -35,6 +35,9 @@ def get_azure_openai_llm(
             temperature: LLM temperature (0 = deterministic)
         """
         # Use regular AzureChatOpenAI which supports ainvoke
+        import os
+        azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", azure_endpoint)
+
         return AzureChatOpenAI(
             azure_deployment=model,
             api_version=api_version,
