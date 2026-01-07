@@ -57,16 +57,47 @@ class NotesSummarizer:
         self.translation_chain = get_translation_prompt() | self.llm | StrOutputParser()
         logger.info(f"Excel Notes Translator initialized with provider-model: {provider}-{model}")    
     
+    def _extract_summary_text(
+            self,
+            df: pd.DataFrame,
+            text_column: str='review',
+            length: int=500
+            ) -> pd.DataFrame:
+        """Extract summary texts from DataFrame based on given length limit."""
+
+        df['text_length'] = df[text_column].str.len()
+        return df[df['text_length'] > length]
+    
+    def _extract_translation_text(
+            self,
+            df: pd.DataFrame,
+            text_column: str='review',
+            length: int=500
+            ) -> pd.DataFrame:
+        """Extract translation texts from DataFrame based on given length limit."""
+        
+        df['text_length'] = df[text_column].str.len()
+        return df[df['text_length'] <= length]
+    
     async def async_summarize_text(
             self,
             df: pd.DataFrame,
             text_column: str='review',
             length: int=500
             ) -> pd.DataFrame:
+        """
+        Asynchronously summarize text data in a DataFrame.
 
-        df['review_length'] = df[text_column].apply(lambda x: len(x))
+        Args:
+            df (pd.DataFrame): DataFrame containing the text data
+            text_column (str, optional): Column name containing the text. Defaults to 'review'.
+            length (int, optional): Minimum length of text to summarize. Defaults to 500.
 
-        df_summary = df[df['review_length'] > length]
+        Returns:
+            pd.DataFrame: DataFrame containing the summarized texts
+        """
+
+        df_summary = self._extract_summary_text(df, text_column, length)
 
         text_list = [text for text in df_summary[text_column].tolist()]
         batch_inputs = []
@@ -77,9 +108,8 @@ class NotesSummarizer:
     
         batch_outputs = await self.summarization_chain.abatch(batch_inputs)
 
-        df_summary=df_summary.assign(Summary=batch_outputs).assign(Tag='Summarized')
-
-        return df_summary
+        return df_summary.assign(Summary=batch_outputs)\
+                         .assign(Tag='Summarized')
     
     async def async_tanslate_text(
             self,
@@ -88,9 +118,7 @@ class NotesSummarizer:
             length: int=500
             ) -> pd.DataFrame:
 
-        df['review_length'] = df[text_column].apply(lambda x: len(x))
-
-        df_translate = df[df['review_length'] <= length]
+        df_translate = self._extract_translation_text(df, text_column, length)
 
         text_list = [text for text in df_translate[text_column].tolist()]
         batch_inputs = []
@@ -101,10 +129,8 @@ class NotesSummarizer:
 
         batch_outputs = await self.translation_chain.abatch(batch_inputs)
 
-        df_translate=df_translate.assign(Summary=batch_outputs).assign(Tag='Translated')
-    
-        return df_translate
-
+        return df_translate.assign(Summary=batch_outputs)\
+                           .assign(Tag='Translated')
 
     async def async_processing(
         self,

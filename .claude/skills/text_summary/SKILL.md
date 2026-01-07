@@ -14,12 +14,25 @@ This file is a guide for AI agent to perform text summary task.
 # When to use this skill
 This skill is to be loaded when an AI agent is requested to perform **text summary** task.
 
-## Core Capability
+## Workflow
 
-Use the script from `./skills/scripts/text_summary.py` to perform the requested task.
+1. Ask user for necessary inputs:
+   - input_file_path
+   - nrows
+   - text_column
+   - length
+   - output_path
 
-## How to run the tools
-Please use `uv run`to execute the tool mentioned above.
+   If user needs help for some of the input parameters, run following command to get help:
+   ```
+   uv run src/workflow/run_workflow.py --help
+   ```
+
+2. Run following command to finish the requested task:
+
+   ```
+   uv run src/workflow/run_workflow.py
+   ```    
 
 ## Error handling
 If the Agent gets error that the script cannot be found, use `powershell`commands to search for the script on the local machine.

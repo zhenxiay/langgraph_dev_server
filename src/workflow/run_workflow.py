@@ -16,7 +16,9 @@ import typer
 app = typer.Typer()
 
 from workflow.services.batch_summarizer import NotesSummarizer
+from workflow.utils.timer import log_time
 
+@log_time
 async def workflow(
     input_file_path: str,
     nrows: int ,
