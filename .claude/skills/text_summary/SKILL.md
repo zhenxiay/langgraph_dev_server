@@ -35,6 +35,7 @@ This skill is to be loaded when an AI agent is requested to perform **text summa
    ```    
 
 ## Error handling
-If the Agent gets error that the script cannot be found, use `powershell`commands to search for the script on the local machine.
 
----
+**Script cannot be found**: If the Agent gets this error, use `powershell`commands to search for the script on the local machine.
+
+**Parameters missing or incorrect**: If the Agent gets error regarding any missing or incorrect input parameters, repeat *step 1* and confirm with user.
