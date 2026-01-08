@@ -22,12 +22,31 @@ def get_translation_prompt() -> PromptTemplate:
             input_variables=["text"],
             template="""Identify the language of the following text.
 If it is not English, then translate the following text into English language.
+If the text is already in English, return it as is.
 Keep the length of the translation under 20 words.
+
 DO NOT include any personal data in the summary (e.g., names, email, locations).
+
+Provide ONLY the translation as output.
 
 Text: {text}
 
-Summary:"""
+Translation:"""
+        )
+
+def get_full_translation_prompt() -> PromptTemplate:
+    """Returns a PromptTemplate for single text translation in full length."""
+    return PromptTemplate(
+            input_variables=["text"],
+            template="""Identify the language of the following text.
+If it is not English, then translate the following text into English language.
+If the text is already in English, return it as is.
+
+Provide ONLY the translation as output.
+
+Text: {text}
+
+Translation:"""
         )
 
 def get_sentiment_analysis_prompt() -> PromptTemplate:

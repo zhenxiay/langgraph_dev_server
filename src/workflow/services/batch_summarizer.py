@@ -7,10 +7,11 @@ import numpy as np
 import pandas as pd
 from langchain_core.output_parsers import StrOutputParser
 from tqdm.auto import tqdm
-from workflow.utils.llm import get_azure_openai_llm, get_openai_llm
+from workflow.utils.llm import BaseLLMService
 from workflow.utils.prompt_template import (
     get_summarization_prompt, 
-    get_translation_prompt
+    get_translation_prompt,
+    get_full_translation_prompt,
 )
 
 # Configure logging
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("openai").setLevel(logging.WARNING)
 
-class NotesSummarizer:
+class NotesSummarizer(BaseLLMService):
     """Summarizes notes from Excel files using OpenAI and LangChain."""
     
     def __init__(
@@ -37,25 +38,17 @@ class NotesSummarizer:
             model: Model name (e.g., "gpt-4o-mini", "gpt-4", "gpt-3.5-turbo")
             temperature: LLM temperature (0 = deterministic)
         """
-        if provider == "AzureOpenAI":
-            self.llm = get_azure_openai_llm(
-                model=model,
-                temperature=temperature,
-                max_retries=2
-            )
-        else:
-            self.llm = get_openai_llm(
-                model=model,
-                temperature=temperature,
-                max_retries=2
-            )
+        super().__init__(provider, model, temperature)
 
         # Create chains using RunnableSequence (pipe operator)
         self.summarization_chain = get_summarization_prompt() | self.llm | StrOutputParser()
         logger.info(f"Excel Notes Summarizer initialized with provider-model: {provider}-{model}")
 
         self.translation_chain = get_translation_prompt() | self.llm | StrOutputParser()
-        logger.info(f"Excel Notes Translator initialized with provider-model: {provider}-{model}")    
+        logger.info(f"Excel Notes Translator initialized with provider-model: {provider}-{model}")
+
+        self.full_translation_chain = get_full_translation_prompt() | self.llm | StrOutputParser()
+        logger.info(f"Excel Notes Full Translator initialized with provider-model: {provider}-{model}")    
     
     def _extract_summary_text(
             self,
@@ -79,6 +72,29 @@ class NotesSummarizer:
         df['text_length'] = df[text_column].str.len()
         return df[df['text_length'] <= length]
     
+    def _create_input_list(
+            self,
+            df: pd.DataFrame,
+            text_column: str='review',
+            ) -> List[dict]:
+        """
+        Create input list for batch processing.
+
+        Args:
+            df (pd.DataFrame): DataFrame containing the text data
+            text_column (str, optional): Column name containing the text. Defaults to 'review'.
+        Returns:
+            List[dict]: List of dictionaries for batch input        
+        """
+        text_list = [text for text in df[text_column].tolist()]
+
+        batch_inputs = []
+
+        for text in text_list:
+            batch_inputs.append({"text": text})
+
+        return batch_inputs
+        
     async def async_summarize_text(
             self,
             df: pd.DataFrame,
@@ -99,19 +115,14 @@ class NotesSummarizer:
 
         df_summary = self._extract_summary_text(df, text_column, length)
 
-        text_list = [text for text in df_summary[text_column].tolist()]
-        batch_inputs = []
-        batch_outputs = []
-
-        for text in text_list:
-            batch_inputs.append({"text": text})
+        batch_inputs = self._create_input_list(df_summary, text_column)
     
-        batch_outputs = await self.summarization_chain.abatch(batch_inputs)
+        batch_outputs = await self.summarization_chain.abatch(batch_inputs, return_exceptions=True)
 
         return df_summary.assign(Summary=batch_outputs)\
                          .assign(Tag='Summarized')
     
-    async def async_tanslate_text(
+    async def async_translate_text(
             self,
             df: pd.DataFrame,
             text_column: str='review',
@@ -120,17 +131,24 @@ class NotesSummarizer:
 
         df_translate = self._extract_translation_text(df, text_column, length)
 
-        text_list = [text for text in df_translate[text_column].tolist()]
-        batch_inputs = []
-        batch_outputs = []
+        batch_inputs = self._create_input_list(df_translate, text_column)
 
-        for text in text_list:
-            batch_inputs.append({"text": text})
+        batch_outputs = await self.translation_chain.abatch(batch_inputs, return_exceptions=True)
 
-        batch_outputs = await self.translation_chain.abatch(batch_inputs)
-
-        return df_translate.assign(Summary=batch_outputs)\
+        return df_translate.assign(Translation=batch_outputs)\
                            .assign(Tag='Translated')
+    
+    async def async_full_translate_text(
+            self,
+            df: pd.DataFrame,
+            text_column: str='review',
+            ) -> pd.DataFrame:
+
+        batch_inputs = self._create_input_list(df, text_column)
+
+        batch_outputs = await self.full_translation_chain.abatch(batch_inputs, return_exceptions=True)
+
+        return df.assign(Summary=batch_outputs)
 
     async def async_processing(
         self,
@@ -138,7 +156,8 @@ class NotesSummarizer:
         text_column: str='review',
         length: int=500
         ) -> pd.DataFrame:
-        """Process a batch of rows asynchronously.
+        """
+        Process a batch of rows asynchronously.
         
         Args:
             length: Maximum length of text to summarize, text with less will only be translated.
@@ -148,7 +167,7 @@ class NotesSummarizer:
         """
         
         df_summary = await self.async_summarize_text(df, text_column, length)
-        df_translate = await self.async_tanslate_text(df, text_column, length)
+        df_translate = await self.async_translate_text(df, text_column, length)
 
         return pd.concat(
             [df_summary, df_translate], 

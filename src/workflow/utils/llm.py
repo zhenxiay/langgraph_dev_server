@@ -1,7 +1,7 @@
 """This module define large language models (LLMs) which will be used by the workflow automation."""
 from langchain_openai import AzureChatOpenAI, ChatOpenAI
 
-def get_openai_llm(
+def _get_openai_llm(
         model: str = "gpt-4.1",
         temperature: float = 0,
         max_retries: int = 2,
@@ -19,7 +19,7 @@ def get_openai_llm(
             max_retries=max_retries
         )
 
-def get_azure_openai_llm(
+def _get_azure_openai_llm(
         model: str = "gpt-4.1",
         api_version: str = "2025-01-01-preview",
         azure_endpoint: str = "https://your-endpoint.openai.azure.com/",
@@ -45,3 +45,35 @@ def get_azure_openai_llm(
             temperature=temperature,
             max_retries=max_retries
         )
+
+class BaseLLMService:
+    """Base class for services using LLM providers."""
+    
+    def __init__(
+        self,
+        provider: str = "AzureOpenAI",
+        model: str = "gpt-4.1",
+        temperature: float = 0
+    ):
+        """Initialize the LLM service.
+        
+        Args:
+            provider: LLM provider ("AzureOpenAI" or "OpenAI")
+            model: Model name (e.g., "gpt-4o-mini", "gpt-4", "gpt-3.5-turbo")
+            temperature: LLM temperature (0 = deterministic)
+        """
+        if provider == "AzureOpenAI":
+            self.llm = _get_azure_openai_llm(
+                model=model,
+                temperature=temperature,
+                max_retries=2
+            )
+        else:
+            self.llm = _get_openai_llm(
+                model=model,
+                temperature=temperature,
+                max_retries=2
+            )
+        
+        self.provider = provider
+        self.model = model
