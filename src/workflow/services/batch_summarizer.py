@@ -50,27 +50,23 @@ class NotesSummarizer(BaseLLMService):
         self.full_translation_chain = get_full_translation_prompt() | self.llm | StrOutputParser()
         logger.info(f"Excel Notes Full Translator initialized with provider-model: {provider}-{model}")    
     
-    def _extract_summary_text(
+    def _extract_text(
             self,
             df: pd.DataFrame,
             text_column: str='review',
-            length: int=500
+            length: int=500,
+            option: str='summary'
             ) -> pd.DataFrame:
-        """Extract summary texts from DataFrame based on given length limit."""
+        """
+        Extract summary texts from DataFrame based on given length limit.
+        """
 
         df['text_length'] = df[text_column].str.len()
-        return df[df['text_length'] > length]
-    
-    def _extract_translation_text(
-            self,
-            df: pd.DataFrame,
-            text_column: str='review',
-            length: int=500
-            ) -> pd.DataFrame:
-        """Extract translation texts from DataFrame based on given length limit."""
-        
-        df['text_length'] = df[text_column].str.len()
-        return df[df['text_length'] <= length]
+
+        if option == 'summary':
+            return df[df['text_length'] > length]
+        elif option == 'translation':
+            return df[df['text_length'] <= length]
     
     def _create_input_list(
             self,
@@ -113,7 +109,7 @@ class NotesSummarizer(BaseLLMService):
             pd.DataFrame: DataFrame containing the summarized texts
         """
 
-        df_summary = self._extract_summary_text(df, text_column, length)
+        df_summary = self._extract_text(df, text_column, length, option='summary')
 
         batch_inputs = self._create_input_list(df_summary, text_column)
     
@@ -129,7 +125,7 @@ class NotesSummarizer(BaseLLMService):
             length: int=500
             ) -> pd.DataFrame:
 
-        df_translate = self._extract_translation_text(df, text_column, length)
+        df_translate = self._extract_text(df, text_column, length, option='translation')
 
         batch_inputs = self._create_input_list(df_translate, text_column)
 

@@ -40,6 +40,29 @@ class SentimentAnalyzer(BaseLLMService):
         self.sentiment_analysis_chain = get_sentiment_analysis_prompt() | self.llm | StrOutputParser()
         logger.info(f"Excel Notes Sentiment Analyzer initialized with provider-model: {provider}-{model}")
 
+    def _create_input_list(
+            self,
+            df: pd.DataFrame,
+            text_column: str='review',
+            ) -> List[dict]:
+        """
+        Create input list for batch processing.
+
+        Args:
+            df (pd.DataFrame): DataFrame containing the text data
+            text_column (str, optional): Column name containing the text. Defaults to 'review'.
+        Returns:
+            List[dict]: List of dictionaries for batch input        
+        """
+        text_list = [text for text in df[text_column].tolist()]
+
+        batch_inputs = []
+
+        for text in text_list:
+            batch_inputs.append({"text": text})
+
+        return batch_inputs
+
     async def async_analyze_sentiment(
             self,
             df: pd.DataFrame,
@@ -56,12 +79,7 @@ class SentimentAnalyzer(BaseLLMService):
             pd.DataFrame: DataFrame containing the summarized texts
         """
 
-        text_list = [text for text in df[text_column].tolist()]
-        batch_inputs = []
-        batch_outputs = []
-
-        for text in text_list:
-            batch_inputs.append({"text": text})
+        batch_inputs = self._create_input_list(df, text_column)
     
         batch_outputs = await self.sentiment_analysis_chain.abatch(batch_inputs, return_exceptions=True)
 
