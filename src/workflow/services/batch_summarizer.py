@@ -6,7 +6,7 @@ from typing import List
 import numpy as np
 import pandas as pd
 from langchain_core.output_parsers import StrOutputParser
-from tqdm.auto import tqdm
+from langchain_core.tracers.schemas import Run
 from workflow.utils.llm import BaseLLMService
 from workflow.utils.prompt_template import (
     get_summarization_prompt, 
@@ -39,6 +39,9 @@ class NotesSummarizer(BaseLLMService):
             temperature: LLM temperature (0 = deterministic)
         """
         super().__init__(provider, model, temperature)
+
+        # Define max concurrent requests for batch processing
+        self.chain_config = {"max_concurrent_requests": 512}
 
         # Create chains using RunnableSequence (pipe operator)
         self.summarization_chain = get_summarization_prompt() | self.llm | StrOutputParser()
@@ -90,6 +93,18 @@ class NotesSummarizer(BaseLLMService):
             batch_inputs.append({"text": text})
 
         return batch_inputs
+
+    async def on_start_summarizer(self, run_obj: Run):
+        """Callback function to log when summarization starts."""
+        
+        logger.info(f"Summarization started for ID: {run_obj.id}")
+
+    async def on_end_summarizer(self, run_obj: Run):
+        """Callback function to log when summarization ends."""
+
+        duration = run_obj.end_time - run_obj.start_time
+
+        logger.info(f"Task {run_obj.id} finished in {duration.total_seconds():.2f}s")
         
     async def async_summarize_text(
             self,
@@ -142,7 +157,16 @@ class NotesSummarizer(BaseLLMService):
 
         batch_inputs = self._create_input_list(df, text_column)
 
-        batch_outputs = await self.full_translation_chain.abatch(batch_inputs, return_exceptions=True)
+        batch_outputs = await self.full_translation_chain\
+                                        .with_alisteners(
+                                            on_start=self.on_start_summarizer,
+                                            on_end=self.on_end_summarizer
+                                            ) \
+                                        .abatch(
+                                            batch_inputs, 
+                                            return_exceptions=True, 
+                                            config=self.chain_config
+                                            )
 
         return df.assign(Summary=batch_outputs)
 

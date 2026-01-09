@@ -22,3 +22,23 @@ def read_excel_file(file_path: str, nrows: int = 128) -> pd.DataFrame:
     except Exception as e:
         logger.error(f"Error reading the Excel file: {e}")
         raise
+
+def read_csv_file(file_path: str, nrows: int = 128) -> pd.DataFrame:
+    """Reads a CSV file and returns a DataFrame.
+
+    Args:
+        file_path (str): The path to the csv file.
+        nrows (int): The number of rows to read from the file. Default is 128.
+    """
+    try:
+        df = pd.read_csv(
+                file_path, 
+                nrows=nrows, 
+                delimiter=';'
+                )
+        logger.info(f"Successfully read the CSV file: {file_path}")
+        logger.info(f"Rows loaded: {len(df)}")
+        return df
+    except Exception as e:
+        logger.error(f"Error reading the CSV file: {e}")
+        raise

@@ -21,17 +21,23 @@ def log_time(func: F) -> F:
     @functools.wraps(func)
     async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
         start = time.perf_counter()
+        logger.info(f"Started {func.__name__} at {time.strftime('%X')}")
+
         result = await func(*args, **kwargs)
         elapsed = time.perf_counter() - start
         logger.info(f"{func.__name__} took {elapsed:.2f}s")
+
         return result
     
     @functools.wraps(func)
     def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
         start = time.perf_counter()
+        logger.info(f"Started {func.__name__} at {time.strftime('%X')}")
+
         result = func(*args, **kwargs)
         elapsed = time.perf_counter() - start
         logger.info(f"{func.__name__} took {elapsed:.2f}s")
+        
         return result
     
     import asyncio
