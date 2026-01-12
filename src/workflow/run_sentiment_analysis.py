@@ -30,7 +30,7 @@ async def workflow(
         nrows=nrows, 
         delimiter=';'
         )
-    sentiment_analyzer = SentimentAnalyzer()
+    sentiment_analyzer = SentimentAnalyzer(max_retries=0)
 
     return await sentiment_analyzer.async_analyze_sentiment(
         df=test_data, 
