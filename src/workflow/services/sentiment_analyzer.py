@@ -5,6 +5,7 @@ from typing import List
 
 import numpy as np
 import pandas as pd
+import polars as pl
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnableConfig
 from tqdm.auto import tqdm
@@ -42,20 +43,20 @@ class SentimentAnalyzer(BaseModel):
 
     async def async_analyze_sentiment(
             self,
-            df: pd.DataFrame,
-            text_column: str='review',
+            df: pl.DataFrame,
+            text_column: str='text',
             BATCH_SIZE: int = 32,
-            ) -> pd.DataFrame:
+            ) -> pl.DataFrame:
         """
         Asynchronously summarize text data in a DataFrame.
 
         Args:
-            df (pd.DataFrame): DataFrame containing the text data
-            text_column (str, optional): Column name containing the text. Defaults to 'review'.
+            df (pl.DataFrame): PolarsDataFrame containing the text data
+            text_column (str, optional): Column name containing the text. Defaults to 'text'.
             BATCH_SIZE (int, optional): Number of samples to process in each batch. Defaults to 32.
 
         Returns:
-            pd.DataFrame: DataFrame containing the summarized texts
+            pl.DataFrame: Polars DataFrame containing the summarized texts
         """
 
         batch_inputs = self._create_input_list(df, text_column)
@@ -66,4 +67,6 @@ class SentimentAnalyzer(BaseModel):
             llm_chain = self.sentiment_analysis_chain
             )
 
-        return df.assign(Sentiment=batch_outputs)
+        return df.with_columns([
+                    pl.Series("Sentiment", batch_outputs, strict=False)
+                    ])

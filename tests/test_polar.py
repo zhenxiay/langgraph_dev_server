@@ -1,8 +1,6 @@
 """
 This script tests the data reading utilities using Polars library.    
 """
-
-import os
 import polars as pl
 
 import sys

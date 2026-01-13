@@ -1,5 +1,5 @@
 import asyncio
-import pandas as pd
+import polars as pl
 
 import sys
 from pathlib import Path
@@ -16,6 +16,7 @@ import typer
 app = typer.Typer()
 
 from workflow.services.batch_summarizer import NotesSummarizer
+from workflow.utils.data_reader import read_csv_file
 from workflow.utils.timer import log_time
 
 @log_time
@@ -23,16 +24,16 @@ async def workflow(
     input_file_path: str,
     nrows: int ,
     text_column: str,
-    ) -> pd.DataFrame:
+    ) -> pl.DataFrame:
     """Main function for running the full translation."""
-    test_data = pd.read_csv(
-        input_file_path, 
-        nrows=nrows, 
-        delimiter=';'
+
+    data = read_csv_file(
+        file_path=input_file_path, 
+        nrows=nrows
         )
 
     return await NotesSummarizer().async_full_translate_text(
-        df=test_data, 
+        df=data, 
         text_column=text_column,
         )
 
@@ -54,7 +55,7 @@ def main(
                     "result_full_translation.xlsx",
                     help="Path to save the translated notes."
                     ),
-    ) -> pd.DataFrame:
+    ) -> pl.DataFrame:
     """Entry point for executing the workflow."""
 
     df_output = asyncio.run(
@@ -65,10 +66,7 @@ def main(
         )
     )
 
-    df_output.to_excel(
-        output_path, 
-        index=False
-        )
+    df_output.write_excel(output_path)
     
     typer.echo(f"Summarized notes saved to: {output_path}")
     

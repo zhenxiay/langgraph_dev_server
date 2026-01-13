@@ -14,7 +14,10 @@ def read_excel_file(file_path: str, nrows: int = 128) -> pl.DataFrame:
         nrows (int): The number of rows to read from the file. Default is 128.
     """
     try:
-        df = pl.read_excel(file_path, n_rows=nrows)
+        df = pl.read_excel(
+            file_path, 
+            n_rows=nrows
+            )
         logger.info(f"Successfully read the Excel file: {file_path}")
         logger.info(f"Rows loaded: {len(df)}")
         return df
@@ -32,7 +35,7 @@ def read_csv_file(file_path: str, nrows: int = 128) -> pl.DataFrame:
     try:
         df = pl.read_csv(
                 file_path, 
-                n_rows=nrows, 
+                n_rows=nrows,
                 separator=';'
                 )
         logger.info(f"Successfully read the CSV file: {file_path}")

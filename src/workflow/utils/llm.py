@@ -1,9 +1,14 @@
-"""This module define large language models (LLMs) which will be used by the workflow automation."""
+"""
+This module define the base model which will be used by the workflow automation.
+"""
 import pandas as pd
+import polars as pl
 from typing import List
 import logging
 from langchain_openai import AzureChatOpenAI, ChatOpenAI
 from langchain_core.runnables import RunnableConfig, RunnableSequence
+
+from workflow.utils.timer import log_time
 
 def _get_openai_llm(
         model: str = "gpt-4.1",
@@ -53,6 +58,7 @@ def _get_azure_openai_llm(
 class BaseModel:
     """Base class for services using LLM providers."""
     
+    @log_time
     def __init__(
         self,
         provider: str = "AzureOpenAI",
@@ -88,22 +94,23 @@ class BaseModel:
 
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
-
+    
+    @log_time
     def _create_input_list(
             self,
-            df: pd.DataFrame,
+            df: pl.DataFrame,
             text_column: str='review',
             ) -> List[dict]:
         """
         Create input list for batch processing.
 
         Args:
-            df (pd.DataFrame): DataFrame containing the text data
+            df (pl.DataFrame): Polars DataFrame containing the text data
             text_column (str, optional): Column name containing the text. Defaults to 'review'.
         Returns:
             List[dict]: List of dictionaries for batch input        
         """
-        text_list = [text for text in df[text_column].tolist()]
+        text_list = df.select(text_column).to_series().to_list()
 
         batch_inputs = []
 
@@ -112,23 +119,52 @@ class BaseModel:
 
         return batch_inputs
     
+    @log_time
     def _extract_text(
             self,
-            df: pd.DataFrame,
+            df: pl.DataFrame,
             text_column: str='review',
             length: int=500,
             option: str='summary'
-            ) -> pd.DataFrame:
+            ) -> pl.DataFrame:
         """
         Extract summary texts from DataFrame based on given length limit.
+
+        Retruns a Polars DataFrame filtered by text length.
         """
 
-        df['text_length'] = df[text_column].str.len()
+        df= df.with_columns(
+            pl.col(text_column).str.len_chars().alias("text_length")
+        )
 
         if option == 'summary':
-            return df[df['text_length'] > length]
+            return df.filter(pl.col("text_length") > length)
         elif option == 'translation':
-            return df[df['text_length'] <= length]
+            return df.filter(pl.col("text_length") <= length)
+
+    @log_time
+    async def _async_process_current_batch(
+            self,
+            current_batch: List[dict],
+            llm_chain: RunnableSequence = None,
+            ) -> List[str]:
+        """
+        Asynchronously process the current batch with a given llm chain.
+
+        Args:
+            current_batch (List[dict]): List of dictionaries for current batch input
+
+        Returns:
+            List[str]: List of outputs from the LLM
+        """
+
+        response = await llm_chain.abatch(
+                                current_batch, 
+                                return_exceptions=True, 
+                                config=RunnableConfig(max_concurrency=self.max_concurrent_requests)
+                                )
+        
+        return response
         
     async def _async_batch_llm_request(
             self,
@@ -152,11 +188,10 @@ class BaseModel:
         for i in range(0, len(batch_inputs), BATCH_SIZE):
             current_batch = batch_inputs[i:i + BATCH_SIZE]
             
-            response = await llm_chain.abatch(
-                                    current_batch, 
-                                    return_exceptions=True, 
-                                    config=RunnableConfig(max_concurrency=self.max_concurrent_requests)
-                                    )
+            response = await self._async_process_current_batch(
+                current_batch=current_batch,
+                llm_chain=llm_chain
+            )
             
             batch_outputs.extend(response)
 

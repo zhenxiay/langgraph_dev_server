@@ -28,6 +28,7 @@ dependencies = [
     "typer>=0.16.0",
     "polars>=1.37.0",
     "xlsx2csv",
+    "xlsxwriter",
 ]
 
 

@@ -1,5 +1,5 @@
 import asyncio
-import pandas as pd
+import polars as pl
 
 import sys
 from pathlib import Path
@@ -16,6 +16,7 @@ import typer
 app = typer.Typer()
 
 from workflow.services.sentiment_analyzer import SentimentAnalyzer
+from workflow.utils.data_reader import read_csv_file
 from workflow.utils.timer import log_time
 
 @log_time
@@ -23,17 +24,20 @@ async def workflow(
     input_file_path: str,
     nrows: int ,
     text_column: str,
-    ) -> pd.DataFrame:
-    """Main function for running the SentimentAnalyzer."""
-    test_data = pd.read_csv(
-        input_file_path, 
-        nrows=nrows, 
-        delimiter=';'
+    ) -> pl.DataFrame:
+    """
+    Main function for running the SentimentAnalyzer.
+    """
+    
+    data = read_csv_file(
+        file_path=input_file_path, 
+        nrows=nrows
         )
+
     sentiment_analyzer = SentimentAnalyzer(max_retries=0)
 
     return await sentiment_analyzer.async_analyze_sentiment(
-        df=test_data, 
+        df=data, 
         text_column=text_column,
         )
 
@@ -55,8 +59,10 @@ def main(
                     "result_sentiment_analysis.xlsx",
                     help="Path to save the summarized notes."
                     ),
-    ) -> pd.DataFrame:
-    """Entry point for executing the workflow."""
+    ) -> pl.DataFrame:
+    """
+    Entry point for executing the workflow.
+    """
 
     df_output = asyncio.run(
         workflow(
@@ -66,10 +72,7 @@ def main(
         )
     )
 
-    df_output.to_excel(
-        output_path, 
-        index=False
-        )
+    df_output.write_excel(output_path)
     
     typer.echo(f"Summarized notes saved to: {output_path}")
     

@@ -5,8 +5,9 @@ from typing import List
 
 import numpy as np
 import pandas as pd
+import polars as pl
+from langchain_core.runnables import RunnableConfig
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.tracers.schemas import Run
 from workflow.utils.llm import BaseModel
 from workflow.utils.prompt_template import (
     get_summarization_prompt, 
@@ -51,22 +52,22 @@ class NotesSummarizer(BaseModel):
         
     async def async_summarize_text(
             self,
-            df: pd.DataFrame,
-            text_column: str='review',
+            df: pl.DataFrame,
+            text_column: str='text',
             length: int=500,
             BATCH_SIZE: int = 32,
-            ) -> pd.DataFrame:
+            ) -> pl.DataFrame:
         """
-        Asynchronously summarize text data in a DataFrame.
+        Asynchronously summarize text data in a Polars DataFrame.
 
         Args:
-            df (pd.DataFrame): DataFrame containing the text data
+            df (pl.DataFrame): DataFrame containing the text data
             text_column (str, optional): Column name containing the text. Defaults to 'review'.
             length (int, optional): Minimum length of text to summarize. Defaults to 500.
             BATCH_SIZE (int, optional): Number of samples to process in each batch. Defaults to 32.
 
         Returns:
-            pd.DataFrame: DataFrame containing the summarized texts
+            pl.DataFrame: Polars DataFrame containing the summarized texts
         """
 
         df_summary = self._extract_text(df, text_column, length, option='summary')
@@ -79,27 +80,29 @@ class NotesSummarizer(BaseModel):
             llm_chain = self.summarization_chain
             )
 
-        return df_summary.assign(Summary=batch_outputs)\
-                         .assign(Tag='Summarized')
+        return df_summary.with_columns([
+                    pl.Series("Summary", batch_outputs, strict=False),
+                    pl.lit("Summarized").alias("Tag")
+                    ])
     
     async def async_translate_text(
             self,
-            df: pd.DataFrame,
-            text_column: str='review',
+            df: pl.DataFrame,
+            text_column: str='text',
             length: int=500,
             BATCH_SIZE: int = 32,
-            ) -> pd.DataFrame:
+            ) -> pl.DataFrame:
         """
-        Asynchronously translate text data in a DataFrame with a limited length as output.
+        Asynchronously translate text data in a Polars DataFrame with a limited length as output.
 
         Args:
-            df (pd.DataFrame): DataFrame containing the text data
-            text_column (str, optional): Column name containing the text. Defaults to 'review'.
+            df (pl.DataFrame): Polars DataFrame containing the text data
+            text_column (str, optional): Column name containing the text. Defaults to 'text'.
             length (int, optional): Minimum length of text to summarize. Defaults to 500.
             BATCH_SIZE (int, optional): Number of samples to process in each batch. Defaults to 32.
 
         Returns:
-            pd.DataFrame: DataFrame containing the translated texts
+            pl.DataFrame: Polars DataFrame containing the translated texts
         """
 
         df_translate = self._extract_text(df, text_column, length, option='translation')
@@ -112,25 +115,27 @@ class NotesSummarizer(BaseModel):
             llm_chain = self.translation_chain
             )
 
-        return df_translate.assign(Translation=batch_outputs)\
-                           .assign(Tag='Translated')
+        return df_translate.with_columns([
+                    pl.Series("Summary", batch_outputs, strict=False),
+                    pl.lit("Translated").alias("Tag")
+                    ])
     
     async def async_full_translate_text(
             self,
-            df: pd.DataFrame,
+            df: pl.DataFrame,
             text_column: str='review',
             BATCH_SIZE: int = 32,
-            ) -> pd.DataFrame:                
+            ) -> pl.DataFrame:                
         """
-        Asynchronously translate text data in a DataFrame with full length as output.
+        Asynchronously translate text data in a Polars DataFrame with full length as output.
 
         Args:
-            df (pd.DataFrame): DataFrame containing the text data
-            text_column (str, optional): Column name containing the text. Defaults to 'review'.
+            df (pl.DataFrame): Polars DataFrame containing the text data
+            text_column (str, optional): Column name containing the text. Defaults to 'text'.
             BATCH_SIZE (int, optional): Number of samples to process in each batch. Defaults to 32.
 
         Returns:
-            pd.DataFrame: DataFrame containing the translated texts
+            pl.DataFrame: Polars DataFrame containing the translated texts
         """
 
         batch_inputs = self._create_input_list(df, text_column)
@@ -141,28 +146,34 @@ class NotesSummarizer(BaseModel):
             llm_chain = self.full_translation_chain
             )
 
-        return df.assign(Summary=batch_outputs)
+        return df.with_columns([
+                    pl.Series("Translation", batch_outputs, strict=False),
+                    ])
 
     async def async_processing(
         self,
-        df: pd.DataFrame,
-        text_column: str='review',
+        df: pl.DataFrame,
+        text_column: str='text',
+        BATCH_SIZE: int = 32,
         length: int=500
-        ) -> pd.DataFrame:
+        ) -> pl.DataFrame:
         """
         Get the summarized and translated texts based on length limit and concatenate the results.
         
         Args:
+            df (pl.DataFrame): Polars DataFrame containing the text data
+            text_column (str, optional): Column name containing the text. Defaults to 'text'.
+            BATCH_SIZE (int, optional): Number of samples to process in each batch. Defaults to 32.
             length: Maximum length of text to summarize, text with less will only be translated.
 
         Returns:
-            Pandas Dataframe with output from both functions and tag
+            Polars DataFrame with output from both functions and tag
         """
         
-        df_summary = await self.async_summarize_text(df, text_column, length)
-        df_translate = await self.async_translate_text(df, text_column, length)
+        df_summary = await self.async_summarize_text(df, text_column, length, BATCH_SIZE)
+        df_translate = await self.async_translate_text(df, text_column, length, BATCH_SIZE)
 
-        return pd.concat(
+        return pl.concat(
             [df_summary, df_translate], 
-            ignore_index=True
+            how="vertical"
             )

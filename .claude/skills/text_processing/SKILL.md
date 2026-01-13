@@ -3,7 +3,7 @@ name: test-processing-guide
 description: "Comprehensive guide for AI agent when it is requested to perform following tasks: (1) Summarize text, (2) Sentiment analysis, (3) Translate test in full length."
 ---
 
-# DOCX creation, editing, and analysis
+# Text Summary, Translation and Sentiment analysis
 
 ## Overview
 
