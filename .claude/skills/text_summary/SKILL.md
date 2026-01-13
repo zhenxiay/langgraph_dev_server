@@ -19,6 +19,7 @@ This skill is to be loaded when an AI agent is requested to perform **text summa
 1. Ask user for necessary inputs:
    - input_file_path
    - nrows
+   - batch_size
    - text_column
    - length
    - output_path

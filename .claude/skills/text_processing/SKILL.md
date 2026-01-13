@@ -27,6 +27,7 @@ Use "Translate text" workflow
 1. Ask user for necessary inputs:
    - input_file_path
    - nrows
+   - batch_size
    - text_column
    - length
    - output_path
@@ -47,6 +48,7 @@ Use "Translate text" workflow
 1. Ask user for necessary inputs:
    - input_file_path
    - nrows
+   - batch_size
    - text_column
    - output_path
 
@@ -66,6 +68,7 @@ Use "Translate text" workflow
 1. Ask user for necessary inputs:
    - input_file_path
    - nrows
+   - batch_size
    - text_column
    - output_path
 

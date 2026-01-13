@@ -23,6 +23,7 @@ from workflow.utils.timer import log_time
 async def workflow(
     input_file_path: str,
     nrows: int ,
+    batch_size: int,
     text_column: str,
     ) -> pl.DataFrame:
     """Main function for running the full translation."""
@@ -33,8 +34,9 @@ async def workflow(
         )
 
     return await NotesSummarizer().async_full_translate_text(
-        df=data, 
+        df=data,      
         text_column=text_column,
+        BATCH_SIZE=batch_size,   
         )
 
 @app.command()
@@ -47,6 +49,10 @@ def main(
                     128, 
                     help="Number of rows that is to be processed."
                             ),
+    batch_size: int  = typer.Option(
+                    32, 
+                    help="Number of rows that is to be processed in each batch."
+                            ),
     text_column: str = typer.Option(
                     "text", 
                     help="Name of the text column that is to be translated."
@@ -56,12 +62,15 @@ def main(
                     help="Path to save the translated notes."
                     ),
     ) -> pl.DataFrame:
-    """Entry point for executing the workflow."""
+    """
+    Entry point for executing the workflow.
+    """
 
     df_output = asyncio.run(
         workflow(
             input_file_path=input_file_path,
             nrows=nrows,
+            batch_size=batch_size,
             text_column=text_column,
         )
     )

@@ -23,6 +23,7 @@ from workflow.utils.timer import log_time
 async def workflow(
     input_file_path: str,
     nrows: int ,
+    batch_size: int,
     text_column: str,
     length: int,
     ) -> pl.DataFrame:
@@ -40,6 +41,7 @@ async def workflow(
     return await text_summarizer.async_processing(
         df=data, 
         text_column=text_column,
+        BATCH_SIZE=batch_size,
         length=length
         )
 
@@ -52,6 +54,10 @@ def main(
     nrows: int  = typer.Option(
                     128, 
                     help="Number of rows that is to be processed."
+                            ),
+     batch_size: int  = typer.Option(
+                    32, 
+                    help="Number of rows that is to be processed in each batch."
                             ),
     text_column: str = typer.Option(
                     "text", 
@@ -74,6 +80,7 @@ def main(
         workflow(
             input_file_path=input_file_path,
             nrows=nrows,
+            batch_size=batch_size,
             text_column=text_column,
             length=length,
         )

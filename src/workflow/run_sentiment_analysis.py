@@ -23,6 +23,7 @@ from workflow.utils.timer import log_time
 async def workflow(
     input_file_path: str,
     nrows: int ,
+    batch_size: int,
     text_column: str,
     ) -> pl.DataFrame:
     """
@@ -39,6 +40,7 @@ async def workflow(
     return await sentiment_analyzer.async_analyze_sentiment(
         df=data, 
         text_column=text_column,
+        BATCH_SIZE=batch_size,
         )
 
 @app.command()
@@ -49,7 +51,11 @@ def main(
                             ),
     nrows: int  = typer.Option(
                     128, 
-                    help="Number of rows that is to be processed."
+                    help="Number of rows that is to be loaded from the file."
+                            ),
+    batch_size: int  = typer.Option(
+                    32, 
+                    help="Number of rows that is to be processed in each batch."
                             ),
     text_column: str = typer.Option(
                     "text", 
@@ -68,6 +74,7 @@ def main(
         workflow(
             input_file_path=input_file_path,
             nrows=nrows,
+            batch_size=batch_size,
             text_column=text_column,
         )
     )
