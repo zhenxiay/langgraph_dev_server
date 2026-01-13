@@ -1,14 +1,8 @@
 """This module provides a class with langchain framework to summarize large datasets with single API calls."""
-import asyncio
 import logging
-from typing import List
 
-import numpy as np
-import pandas as pd
 import polars as pl
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnableConfig
-from tqdm.auto import tqdm
 from workflow.utils.llm import BaseModel
 from workflow.utils.prompt_template import get_sentiment_analysis_prompt
 

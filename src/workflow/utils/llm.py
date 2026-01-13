@@ -1,7 +1,6 @@
 """
 This module define the base model which will be used by the workflow automation.
 """
-import pandas as pd
 import polars as pl
 from typing import List
 import logging
