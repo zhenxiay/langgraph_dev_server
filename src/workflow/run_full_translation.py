@@ -32,8 +32,10 @@ async def workflow(
         file_path=input_file_path, 
         nrows=nrows
         )
-
-    return await NotesSummarizer().async_full_translate_text(
+    
+    text_translator = NotesSummarizer(max_retries=1)
+    
+    return await text_translator.async_full_translate_text(
         df=data,      
         text_column=text_column,
         BATCH_SIZE=batch_size,   

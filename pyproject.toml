@@ -29,6 +29,7 @@ dependencies = [
     "polars>=1.37.0",
     "xlsx2csv",
     "xlsxwriter",
+    "duckdb",
 ]
 
 

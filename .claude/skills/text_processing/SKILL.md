@@ -50,7 +50,7 @@ Use "Translate text" workflow
    - nrows
    - batch_size
    - text_column
-   - output_path
+   - output_table
 
    If user needs help for some of the input parameters, run following command to get help:
    ```

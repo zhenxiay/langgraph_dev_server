@@ -17,12 +17,13 @@ app = typer.Typer()
 
 from workflow.services.sentiment_analyzer import SentimentAnalyzer
 from workflow.utils.data_reader import read_csv_file
+from workflow.utils.database import save_to_duckdb
 from workflow.utils.timer import log_time
 
 @log_time
 async def workflow(
     input_file_path: str,
-    nrows: int ,
+    nrows: int,
     batch_size: int,
     text_column: str,
     ) -> pl.DataFrame:
@@ -35,7 +36,7 @@ async def workflow(
         nrows=nrows
         )
 
-    sentiment_analyzer = SentimentAnalyzer(max_retries=0)
+    sentiment_analyzer = SentimentAnalyzer(max_retries=1)
 
     return await sentiment_analyzer.async_analyze_sentiment(
         df=data, 
@@ -61,9 +62,9 @@ def main(
                     "text", 
                     help="Name of the text column that is to be summarized."
                             ),
-    output_path: str = typer.Option(
-                    "result_sentiment_analysis.xlsx",
-                    help="Path to save the summarized notes."
+    output_table: str = typer.Option(
+                    "result_sentiment_analysis",
+                    help="Name of the DuckDB table to save the summarized notes."
                     ),
     ) -> pl.DataFrame:
     """
@@ -79,9 +80,13 @@ def main(
         )
     )
 
-    df_output.write_excel(output_path)
-    
-    typer.echo(f"Summarized notes saved to: {output_path}")
+    # Save the output DataFrame to DuckDB
+    save_to_duckdb(
+        df=df_output,
+        table_name=output_table,
+        )
+
+    typer.echo(f"Results of sentiments analysis saved to DuckDB: {output_table}")
     
 if __name__ == "__main__":
     # Ensure NO_PROXY is set for localhost connections

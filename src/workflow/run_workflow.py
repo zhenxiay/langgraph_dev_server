@@ -36,7 +36,7 @@ async def workflow(
         nrows=nrows
         )
 
-    text_summarizer = NotesSummarizer()
+    text_summarizer = NotesSummarizer(max_retries=1)
 
     return await text_summarizer.async_processing(
         df=data, 
