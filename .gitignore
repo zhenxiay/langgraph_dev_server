@@ -9,6 +9,7 @@ meta.yaml
 traces.json
 trace_info.yaml
 *.csv
+*duckdb
 
 # C extensions
 *.so
