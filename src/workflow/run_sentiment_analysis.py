@@ -96,7 +96,11 @@ def main(
         table_name=output_table,
         )
     
+    typer.echo(f"--- Preview Output Data ---")
+
     df_output.show()
+    
+    typer.echo(f"--- Sentiment Analysis Results Summary ---")
 
     show_agg_view(table_name=output_table).show()
 

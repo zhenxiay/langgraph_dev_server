@@ -55,7 +55,9 @@ def _get_azure_openai_llm(
         )
 
 class BaseModel:
-    """Base class for services using LLM providers."""
+    """
+    Base class for services using LLM providers.
+    """
     
     @log_time
     def __init__(
