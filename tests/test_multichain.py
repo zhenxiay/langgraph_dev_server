@@ -31,11 +31,9 @@ def test_multichain_workflow():
     Main function for testing multi-chain workflows.
     """
 
-    # 1. Your existing chains
     translation_chain = batch_summarizer.NotesSummarizer().full_translation_chain
     sentiment_chain = sentiment_analyzer.SentimentAnalyzer().sentiment_analysis_chain
 
-    # 2. Connect them with a "bridge" 
     # We take the output of chain 1 (x) and wrap it for chain 2
     full_chain = translation_chain | (lambda x: {"text": x}) | sentiment_chain
 
@@ -45,11 +43,18 @@ def test_multichain_workflow():
         "sentiment": sentiment_chain,
     })
 
-    # 3. Run it
-    result = parallel_chain.invoke({"text": "Das ist fantastisch!"})
+    data = read_csv_file(file_path="C:/Users/YUZ1KA/Downloads/crm_text_collection.csv", nrows=32)
+    input_text = sentiment_analyzer.SentimentAnalyzer()._create_input_list(data, text_column='Notes')
+
+    result = parallel_chain.batch(input_text)
+
+    output_data = data.with_columns(
+        pl.Series("Translation", [res["translation"] for res in result]),
+        pl.Series("Sentiment", [res["sentiment"] for res in result])
+    )
 
     print("Multi-chain Workflow Result:")
-    print(result)
+    print(output_data.show())
 
 if __name__ == "__main__":
     test_multichain_workflow()
