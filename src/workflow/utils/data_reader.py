@@ -25,19 +25,25 @@ def read_excel_file(file_path: str, nrows: int = 128) -> pl.DataFrame:
         logger.error(f"Error reading the Excel file: {e}")
         raise
 
-def read_csv_file(file_path: str, nrows: int = 128) -> pl.DataFrame:
+def read_csv_file(
+        file_path: str, 
+        nrows: int = 128,
+        schema_overrides: dict = None
+        ) -> pl.DataFrame:
     """Reads a CSV file and returns a DataFrame.
 
     Args:
         file_path (str): The path to the csv file.
         nrows (int): The number of rows to read from the file. Default is 128.
+        schema_overrides (dict): Optional dictionary to override column data types.
     """
     try:
         df = pl.read_csv(
                 file_path, 
                 n_rows=nrows,
-                separator=';'
-                )
+                separator=';',
+                schema_overrides=schema_overrides
+                       )
         logger.info(f"Successfully read the CSV file: {file_path}")
         logger.info(f"Rows loaded: {len(df)}")
         return df
