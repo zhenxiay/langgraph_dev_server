@@ -55,6 +55,7 @@ def get_sentiment_analysis_prompt() -> PromptTemplate:
             input_variables=["text"],
             template="""You are an expert in sentiment analysis. 
 Your task is to classify the text that customer wrote to following categories: Positive, Very Positive, Neutral, Negative, Very Negative.
+If the text contains information that Azure has not provided the response, return Connection error as output.
 Classify the sentiment of the whole text, NOT single sub points.
 Provide only the category as output without any explanation.
 
