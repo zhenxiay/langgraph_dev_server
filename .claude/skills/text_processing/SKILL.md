@@ -46,8 +46,7 @@ Use "Translate text" workflow
 ### Sentiment analysis
 
 1. Ask user for necessary inputs:
-   - input_file_path
-   - nrows
+   - input_table_name
    - batch_size
    - text_column
    - output_table
@@ -66,8 +65,7 @@ Use "Translate text" workflow
 ### Translate text
 
 1. Ask user for necessary inputs:
-   - input_file_path
-   - nrows
+   - input_table_name
    - batch_size
    - text_column
    - output_path

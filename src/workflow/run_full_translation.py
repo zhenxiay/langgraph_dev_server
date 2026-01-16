@@ -16,21 +16,24 @@ import typer
 app = typer.Typer()
 
 from workflow.services.batch_summarizer import NotesSummarizer
-from workflow.utils.data_reader import read_csv_file
+from workflow.utils.database import (
+    read_from_duckdb,
+    save_to_duckdb, 
+    show_agg_view,
+)
 from workflow.utils.timer import log_time
 
 @log_time
 async def workflow(
-    input_file_path: str,
-    nrows: int ,
+    input_table_name: str,
     batch_size: int,
     text_column: str,
     ) -> pl.DataFrame:
     """Main function for running the full translation."""
 
-    data = read_csv_file(
-        file_path=input_file_path, 
-        nrows=nrows
+    data = read_from_duckdb(
+        table_name=input_table_name, 
+        duckdb_path="input.duckdb"
         )
     
     text_translator = NotesSummarizer(max_retries=1)
@@ -43,13 +46,9 @@ async def workflow(
 
 @app.command()
 def main(
-    input_file_path: str = typer.Option(
-                    "20newsgroups_sci_med.csv", 
-                    help="Name of the file that is to be loaded."
-                            ),
-    nrows: int  = typer.Option(
-                    128, 
-                    help="Number of rows that is to be processed."
+    input_table_name: str = typer.Option(
+                    "sample_data", 
+                    help="Name of the table that is to be loaded from DuckDB."
                             ),
     batch_size: int  = typer.Option(
                     32, 
@@ -59,9 +58,9 @@ def main(
                     "text", 
                     help="Name of the text column that is to be translated."
                             ),
-    output_path: str = typer.Option(
-                    "result_full_translation.xlsx",
-                    help="Path to save the translated notes."
+    output_table: str = typer.Option(
+                    "result_full_translation",
+                    help="Name of the DuckDB table to save the translation results."
                     ),
     ) -> pl.DataFrame:
     """
@@ -70,16 +69,23 @@ def main(
 
     df_output = asyncio.run(
         workflow(
-            input_file_path=input_file_path,
-            nrows=nrows,
+            input_table_name=input_table_name,
             batch_size=batch_size,
             text_column=text_column,
         )
     )
 
-    df_output.write_excel(output_path)
+    # Save the output DataFrame to DuckDB
+    save_to_duckdb(
+        df=df_output,
+        table_name=output_table,
+        )
     
-    typer.echo(f"Summarized notes saved to: {output_path}")
+    typer.echo(f"--- Preview Output Data ---")
+
+    df_output.show()
+
+    typer.echo(f"Results of full translation saved to DuckDB: {output_table}")
     
 if __name__ == "__main__":
     # Ensure NO_PROXY is set for localhost connections

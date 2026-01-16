@@ -36,7 +36,7 @@ async def workflow(
     """
     
     data = read_from_duckdb(
-        input_table_name=input_table_name, 
+        table_name=input_table_name, 
         duckdb_path="input.duckdb"
         )
 
