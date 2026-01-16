@@ -13,7 +13,7 @@ if str(src_path) not in sys.path:
 
 from langchain_core.runnables import RunnableParallel
 
-from workflow.utils.data_reader import read_csv_file
+from workflow.utils.database import read_from_duckdb, save_to_duckdb
 from workflow.utils.timer import log_time
 from workflow.services import batch_summarizer
 from workflow.services import sentiment_analyzer
@@ -26,6 +26,7 @@ import os
 os.environ["NO_PROXY"] = "localhost, 127.0.0.1"
 os.environ["no_proxy"] = "localhost, 127.0.0.1"
 
+@log_time
 def test_multichain_workflow():
     """
     Main function for testing multi-chain workflows.
@@ -42,8 +43,13 @@ def test_multichain_workflow():
         "translation": translation_chain,
         "sentiment": sentiment_chain,
     })
+    
+    # Read sample data from DuckDB and create input list
+    data = read_from_duckdb(
+            table_name="sample_data", 
+            duckdb_path="input.duckdb"
+            )
 
-    data = read_csv_file(file_path="C:/Users/YUZ1KA/Downloads/crm_text_collection.csv", nrows=32)
     input_text = sentiment_analyzer.SentimentAnalyzer()._create_input_list(data, text_column='Notes')
 
     result = parallel_chain.batch(input_text)
@@ -55,6 +61,16 @@ def test_multichain_workflow():
 
     print("Multi-chain Workflow Result:")
     print(output_data.show())
+
+    output_table_name = "result_multichain_workflow"
+
+    save_to_duckdb(
+        df=output_data, 
+        table_name=output_table_name, 
+        duckdb_path="output.duckdb"
+        )
+
+    print(f"Results saved to DuckDB table: {output_table_name}")
 
 if __name__ == "__main__":
     test_multichain_workflow()

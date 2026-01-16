@@ -17,13 +17,16 @@ app = typer.Typer()
 
 from workflow.services.sentiment_analyzer import SentimentAnalyzer
 from workflow.utils.data_reader import read_csv_file
-from workflow.utils.database import save_to_duckdb, show_agg_view
+from workflow.utils.database import (
+    read_from_duckdb,
+    save_to_duckdb, 
+    show_agg_view,
+)
 from workflow.utils.timer import log_time
 
 @log_time
 async def workflow(
-    input_file_path: str,
-    nrows: int,
+    input_table_name: str,
     batch_size: int,
     text_column: str,
     schema_overrides: dict = None,
@@ -32,12 +35,9 @@ async def workflow(
     Main function for running the SentimentAnalyzer.
     """
     
-    schema_overrides = {"ID": pl.String}
-
-    data = read_csv_file(
-        file_path=input_file_path, 
-        nrows=nrows,
-        schema_overrides=schema_overrides
+    data = read_from_duckdb(
+        input_table_name=input_table_name, 
+        duckdb_path="input.duckdb"
         )
 
     sentiment_analyzer = SentimentAnalyzer(max_retries=1)
@@ -50,13 +50,9 @@ async def workflow(
 
 @app.command()
 def main(
-    input_file_path: str = typer.Option(
-                    "20newsgroups_sci_med.csv", 
-                    help="Name of the file that is to be loaded."
-                            ),
-    nrows: int  = typer.Option(
-                    128, 
-                    help="Number of rows that is to be loaded from the file."
+    input_table_name: str = typer.Option(
+                    "sample_data", 
+                    help="Name of the table that is to be loaded from DuckDB."
                             ),
     batch_size: int  = typer.Option(
                     32, 
@@ -77,8 +73,7 @@ def main(
     # Run the workflow asynchronously and get the DataFrame as result
     df = asyncio.run(
         workflow(
-            input_file_path=input_file_path,
-            nrows=nrows,
+            input_table_name=input_table_name,
             batch_size=batch_size,
             text_column=text_column,
         )
@@ -86,7 +81,7 @@ def main(
     
     # Ensure correct data types before saving to DuckDB
     df_output = df.with_columns([
-                    pl.col("ID").cast(pl.Utf8),
+                    pl.col("ID").cast(pl.String),
                     pl.col("Sentiment").cast(pl.String),
                     ])
 

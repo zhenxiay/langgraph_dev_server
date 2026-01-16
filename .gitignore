@@ -10,6 +10,7 @@ traces.json
 trace_info.yaml
 *.csv
 *.duckdb
+duckdb.ipynb
 
 # C extensions
 *.so
